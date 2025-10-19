@@ -36,3 +36,8 @@ A **logistic regression model** predicts the likelihood of a movie being high-qu
 This project successfully combines **content-based filtering** with **machine learning–based quality prediction** to deliver smarter movie recommendations.
 By integrating similarity analysis with a logistic regression model, it provides users with film suggestions that are both **relevant** and **high in quality**.
 
+---
+
+### 💻 **Try the app**
+Explore the Movie Recommendation App yourself! The app is deployed on Streamlit. Click the link below to get started:
+[**Movie Recommendation App**](https://movie-recommendation-2500.streamlit.app/)
