@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 import ast
 
-# Data Loading and Preprocessing 
+# Data Loading and Preprocessing
 @st.cache_data
 def load_and_prepare_data():
     """
@@ -42,10 +42,13 @@ def load_and_prepare_data():
 def create_recommender(df):
     """
     Creates the feature matrix, trains a quality prediction model,
-    calculates the cosine similarity matrix, and returns the recommendation function.
+    calculates the cosine similarity matrix, and returns necessary objects.
     This entire resource-intensive process is cached.
     """
-    # --- Quality Prediction Model ---
+    # Create a copy to ensure the original DataFrame 
+    df = df.copy()
+
+    # Quality Prediction Model
     y_quality = (df['vote_average'] >= 6.5).astype(int)
     X_quality = df[['budget', 'popularity', 'revenue', 'runtime', 'vote_count']].fillna(0)
     
@@ -58,7 +61,7 @@ def create_recommender(df):
     quality_predictions = quality_pipeline.predict_proba(X_quality)[:, 1]
     df['ml_quality_score'] = quality_predictions
 
-    # --- Content-Based Feature Engineering ---
+    # Content-Based Feature Engineering
     numerical_features = ['budget', 'revenue', 'popularity', 'runtime', 'vote_count', 'vote_average']
     numerical_data = df[numerical_features].fillna(0)
     scaler = StandardScaler()
@@ -109,7 +112,7 @@ def create_recommender(df):
     # Create movie index mapping
     movie_indices = pd.Series(df.index, index=df['title'].str.lower()).to_dict()
 
-    return similarity_matrix, movie_indices
+    return similarity_matrix, movie_indices, df
 
 # Streamlit UI 
 
@@ -118,9 +121,11 @@ st.title('🎬 Hybrid Movie Recommendation System')
 st.write('This system combines content similarity with a machine learning quality score to provide smart recommendations.')
 
 # Load data and recommender system
-movies_df = load_and_prepare_data()
-similarity_matrix, movie_indices = create_recommender(movies_df)
-movie_titles = movies_df['title'].sort_values().tolist()
+movies_df_original = load_and_prepare_data()
+
+similarity_matrix, movie_indices, movies_df_with_scores = create_recommender(movies_df_original)
+
+movie_titles = movies_df_with_scores['title'].sort_values().tolist()
 
 # User input
 st.sidebar.header("Select a Movie")
@@ -140,7 +145,7 @@ if st.sidebar.button('Get Recommendations'):
         st.error(f"Movie '{selected_movie_title}' not found in the database.")
     else:
         movie_idx = movie_indices[movie_name_lower]
-        movie_data = movies_df.iloc[movie_idx]
+        movie_data = movies_df_with_scores.iloc[movie_idx]
         
         sim_scores = list(enumerate(similarity_matrix[movie_idx]))
         sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:top_n + 21]
@@ -148,8 +153,8 @@ if st.sidebar.button('Get Recommendations'):
         # Filter and rank recommendations
         recommended_movies = []
         for idx, score in sim_scores:
-            movie_quality = movies_df.iloc[idx]['ml_quality_score']
-            if (movies_df.iloc[idx]['title'] != movie_data['title'] and 
+            movie_quality = movies_df_with_scores.iloc[idx]['ml_quality_score']
+            if (movies_df_with_scores.iloc[idx]['title'] != movie_data['title'] and 
                 score > 0.1 and
                 movie_quality >= min_quality_score):
                 
@@ -175,7 +180,7 @@ if st.sidebar.button('Get Recommendations'):
         with col2:
             st.subheader(f"Top {len(recommended_movies)} Recommendations:")
             for i, (idx, sim, qual, comb) in enumerate(recommended_movies, 1):
-                rec_movie = movies_df.iloc[idx]
+                rec_movie = movies_df_with_scores.iloc[idx]
                 with st.expander(f"**{i}. {rec_movie['title']}** (Combined Score: {comb:.0%})"):
                     st.write(f"**Rating:** {rec_movie['vote_average']:.1f}/10 ({rec_movie['vote_count']} votes)")
                     st.write(f"**Genre:** {rec_movie['genres']}")
