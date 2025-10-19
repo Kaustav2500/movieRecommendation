@@ -22,7 +22,7 @@ def load_and_prepare_data():
     df.drop('homepage', axis=1, inplace=True)
     df.dropna(inplace=True)
 
-    # Helper functions to extract names 
+    # Helper functions to extract names from JSON-like strings
     def extract_first_name(column_str):
         try:
             items = ast.literal_eval(column_str)
@@ -119,32 +119,40 @@ def create_recommender(df):
 st.set_page_config(layout="wide")
 st.title('🎬 Hybrid Movie Recommendation System')
 st.write('This system combines content similarity with a machine learning quality score to provide smart recommendations.')
+st.markdown("---")
 
 # Load data and recommender system
 movies_df_original = load_and_prepare_data()
-
 similarity_matrix, movie_indices, movies_df_with_scores = create_recommender(movies_df_original)
-
 movie_titles = movies_df_with_scores['title'].sort_values().tolist()
 
-# User input on the main screen
+# User input on the main screen 
 st.header("Select a Movie and Your Preferences")
 
-
-col1, col2 = st.columns(2)
-
-with col1:
-    selected_movie_title = st.selectbox(
-        'Choose a movie you like to get recommendations:',
-        options=movie_titles
-    )
-    top_n = st.slider('Number of Recommendations', 5, 15, 5)
+# Use columns to center the input controls on the page
+col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-    min_quality_score = st.slider('Minimum Quality Score (Predicted)', 0.0, 1.0, 0.5, 0.05)
+    selected_movie_title = st.selectbox(
+        'Choose a movie you like to get recommendations:',
+        options=movie_titles,
+        label_visibility="collapsed"
+    )
+    
+    top_n = st.slider(
+        'Number of Recommendations', 
+        min_value=5, max_value=15, value=5
+    )
+    
+    min_quality_score = st.slider(
+        'Minimum Quality Score (Predicted)', 
+        min_value=0.0, max_value=1.0, value=0.5, step=0.05
+    )
+    
     recommend_button = st.button('Get Recommendations', use_container_width=True)
 
 
+# Display Recommendations
 if recommend_button:
     movie_name_lower = selected_movie_title.lower()
     
@@ -155,7 +163,7 @@ if recommend_button:
         movie_data = movies_df_with_scores.iloc[movie_idx]
         
         sim_scores = list(enumerate(similarity_matrix[movie_idx]))
-        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:top_n + 21]
+        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:top_n + 30] # Search more to find quality matches
 
         # Filter and rank recommendations
         recommended_movies = []
@@ -172,21 +180,13 @@ if recommend_button:
                 break
         
         recommended_movies = sorted(recommended_movies, key=lambda x: x[3], reverse=True)[:top_n]
-
-        # Display results
+        
         st.markdown("---")
-        display_col1, display_col2 = st.columns([1, 2])
-
-        with display_col1:
-            st.subheader(f"Because you liked:")
-            st.markdown(f"**{movie_data['title']}**")
-            st.write(f"**Genre:** {movie_data['genres']}")
-            st.write(f"**Rating:** {movie_data['vote_average']:.1f}/10 ({movie_data['vote_count']} votes)")
-            st.write(f"**ML Quality Score:** {movie_data['ml_quality_score']:.0%}")
-            st.write(movie_data['overview'])
-
-        with display_col2:
-            st.subheader(f"Top {len(recommended_movies)} Recommendations:")
+        
+        if not recommended_movies:
+            st.warning("No recommendations found with the selected quality score. Try lowering the 'Minimum Quality Score' slider.")
+        else:
+            st.subheader(f"Top {len(recommended_movies)} Recommendations for '{selected_movie_title}':")
             for i, (idx, sim, qual, comb) in enumerate(recommended_movies, 1):
                 rec_movie = movies_df_with_scores.iloc[idx]
                 with st.expander(f"**{i}. {rec_movie['title']}** (Combined Score: {comb:.0%})"):
