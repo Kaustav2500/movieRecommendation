@@ -118,7 +118,7 @@ def create_recommender(df):
 
 st.set_page_config(layout="wide")
 st.title('🎬 Hybrid Movie Recommendation System')
-st.write('This system combines content similarity with a machine learning quality score to provide smart recommendations.')
+st.write('This system combines content similarity with a machine learning quality score to provide smart recommendations')
 st.markdown("---")
 
 # Load data and recommender system
