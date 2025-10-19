@@ -30,6 +30,9 @@ A **logistic regression model** predicts the likelihood of a movie being high-qu
 4. The two scores are combined into a **final recommendation ranking**.  
 5. The app displays the top recommended movies with reasons for similarity and a short overview.
 
+---
 
+### 🏁 **Conclusion**
+This project successfully combines **content-based filtering** with **machine learning–based quality prediction** to deliver smarter movie recommendations.
+By integrating similarity analysis with a logistic regression model, it provides users with film suggestions that are both **relevant** and **high in quality**.
 
-## 📁 Project Structure
